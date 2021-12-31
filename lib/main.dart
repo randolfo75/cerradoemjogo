@@ -93,6 +93,13 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               child: const Text('Sign in'),
             ),
+            ElevatedButton(
+                onPressed: () {
+                  final provider =
+                      Provider.of<GoogleSignInProvider>(context, listen: false);
+                  provider.googleLogout();
+                },
+                child: const Text('Sign out')),
           ],
         ),
       ),
