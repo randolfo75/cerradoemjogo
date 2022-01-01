@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
-import 'home_page.dart';
+import 'login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,11 +19,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => ChangeNotifierProvider(
         create: (context) => GoogleSignInProvider(),
         child: MaterialApp(
-          title: 'Flutter Demo',
+          title: 'Cerrado em Jogo',
           theme: ThemeData(
             primarySwatch: Colors.green,
           ),
-          home: const HomePage(title: 'Flutter Demo Home Page'),
+          home: const LoginPage(title: 'Login Page'),
         ),
       );
 }

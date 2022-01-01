@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'google_sign_in.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key, required this.title}) : super(key: key);
+class LoginPage extends StatelessWidget {
+  const LoginPage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
