@@ -34,15 +34,12 @@ class LoginPage extends StatelessWidget {
                     Provider.of<GoogleSignInProvider>(context, listen: false);
                 provider.googleLogin();
               },
-              child: const Text('Sign in'),
+              child: const Text('Usar Gmail'),
             ),
             ElevatedButton(
-                onPressed: () {
-                  final provider =
-                      Provider.of<GoogleSignInProvider>(context, listen: false);
-                  provider.googleLogout();
-                },
-                child: const Text('Sign out')),
+              onPressed: () {},
+              child: const Text('Informar meu nome'),
+            ),
           ],
         ),
       ),
