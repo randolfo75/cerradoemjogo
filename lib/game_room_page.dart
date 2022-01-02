@@ -2,6 +2,7 @@ import 'package:cerrado/new_game_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'google_sign_in.dart';
 
@@ -39,13 +40,29 @@ class GameRoom extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-          child: Column(
-        children: [
-          Text(user.displayName!),
-          Text(user.email!),
-        ],
-      )),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection('games').snapshots(),
+        builder: (context,
+            AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text(snapshot.error.toString()));
+          }
+          if (snapshot.hasData) {
+            final docs = snapshot.data!.docs;
+            return ListView.builder(
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  Map<String, dynamic> data = docs[index].data();
+                  return ListTile(title: Text(data['name']));
+                });
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _startAddNewGame(context);
