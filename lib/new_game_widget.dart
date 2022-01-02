@@ -1,3 +1,4 @@
+import 'package:cerrado/game_page.dart';
 import 'package:flutter/material.dart';
 
 class NewGame extends StatefulWidget {
@@ -29,10 +30,23 @@ class _NewGameState extends State<NewGame> {
                   labelText: 'Nome do Jogo',
                 ),
               ),
-              ElevatedButton(onPressed: () {}, child: const Text('Criar jogo')),
+              ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(
+                        builder: (_) => GamePage(
+                              gameName: GameName.typed,
+                              title: 'Nome do Jogo',
+                            )));
+                  },
+                  child: const Text('Criar jogo')),
               const Divider(),
               ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(
+                        builder: (_) => GamePage(
+                              gameName: GameName.gmail,
+                            )));
+                  },
                   child: const Text('Criar jogo com seu nome')),
             ],
           ),
