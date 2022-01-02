@@ -1,6 +1,7 @@
 import 'package:cerrado/new_game_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -56,7 +57,22 @@ class GameRoom extends StatelessWidget {
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
                   Map<String, dynamic> data = docs[index].data();
-                  return ListTile(title: Text(data['name']));
+                  return ListTile(
+                    title: Text(data['name']),
+                    subtitle: Text(
+                        DateFormat("'Hora: 'HH:mm:ss 'Dia: 'dd-MM-yyyy").format(
+                            DateTime.fromMillisecondsSinceEpoch(
+                                    (data['created'] as Timestamp)
+                                        .millisecondsSinceEpoch)
+                                .toLocal())),
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.play_arrow),
+                    ),
+                    trailing: Text(
+                      data['num_players'].toString(),
+                      style: Theme.of(context).textTheme.headline5,
+                    ),
+                  );
                 });
           } else {
             return const Center(child: CircularProgressIndicator());
