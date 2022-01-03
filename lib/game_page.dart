@@ -2,68 +2,51 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum GameName { gmail, typed, random }
-
 class GamePage extends StatefulWidget {
-  final String? title;
-  final GameName gameName;
+  late final String? gameId;
   final user = FirebaseAuth.instance.currentUser!;
 
-  GamePage({Key? key, required this.gameName, this.title}) : super(key: key);
-
-  String _getName(GameName gameName) {
-    switch (gameName) {
-      case GameName.gmail:
-        return user.displayName!;
-      case GameName.typed:
-        if (title == null) {
-          return user.email!;
-        } else {
-          return title!;
-        }
-      case GameName.random:
-        return 'Random';
-      default:
-        return 'Unknown';
-    }
-  }
+  GamePage({Key? key, required this.gameId}) : super(key: key);
 
   @override
   _GamePageState createState() => _GamePageState();
 }
 
 class _GamePageState extends State<GamePage> {
-  late final String gameTitle;
-  CollectionReference games = FirebaseFirestore.instance.collection('games');
-
-  Future<void> addGame() {
-    return games
-        .add({
-          'name': gameTitle,
-          'status': 'open',
-          'created': DateTime.now(),
-          'num_players': 1,
-        })
-        .then((value) => debugPrint('Game created: ${value.id}'))
-        .catchError((error) => debugPrint('Error creating game: $error'));
-  }
-
-  @override
-  void initState() {
-    gameTitle = widget._getName(widget.gameName);
-    addGame();
-    super.initState();
-  }
+  final collectionRef = FirebaseFirestore.instance.collection('games');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Jogo: $gameTitle'),
-      ),
-      body: Center(
-        child: Text('Game: ${widget.user.email!}'),
-      ),
-    );
+        appBar: AppBar(
+          title: const Text('Cerrado em Jogo'),
+        ),
+        body: Center(
+          child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: collectionRef.doc(widget.gameId!).snapshots(),
+            builder: (context,
+                AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>>
+                    snapshot) {
+              if (!snapshot.hasData) {
+                return const Text('Loading...');
+              }
+              Map<String, dynamic> game =
+                  snapshot.data!.data() as Map<String, dynamic>;
+              return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      '${game['name']}',
+                    ),
+                    Text(
+                      '${game['num_players']}',
+                    ),
+                    Text(
+                      '${game['status']}',
+                    ),
+                  ]);
+            },
+          ),
+        ));
   }
 }

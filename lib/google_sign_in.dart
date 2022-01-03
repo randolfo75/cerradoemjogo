@@ -29,7 +29,8 @@ class GoogleSignInProvider with ChangeNotifier {
   }
 
   Future googleLogout() async {
-    await googleSignIn.disconnect();
+    // TODO: implement offline case
     FirebaseAuth.instance.signOut();
+    await googleSignIn.disconnect();
   }
 }

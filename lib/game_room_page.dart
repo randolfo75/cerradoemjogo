@@ -1,3 +1,4 @@
+import 'package:cerrado/game_page.dart';
 import 'package:cerrado/new_game_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -13,12 +14,17 @@ class GameRoom extends StatelessWidget {
   final String title;
   final user = FirebaseAuth.instance.currentUser!;
 
-  void _startAddNewGame(BuildContext context) {
+  void _comeInGame(
+      {required BuildContext context, required bool isHost, String? gameId}) {
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         builder: (_) {
-          return const NewGame();
+          return NewGame(
+            name: user.displayName!,
+            isHost: isHost,
+            gameId: gameId,
+          );
         });
   }
 
@@ -59,14 +65,22 @@ class GameRoom extends StatelessWidget {
                   Map<String, dynamic> data = docs[index].data();
                   return ListTile(
                     title: Text(data['name']),
-                    subtitle: Text(
-                        DateFormat("'Hora: 'HH:mm:ss 'Dia: 'dd-MM-yyyy").format(
-                            DateTime.fromMillisecondsSinceEpoch(
-                                    (data['created'] as Timestamp)
-                                        .millisecondsSinceEpoch)
-                                .toLocal())),
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.play_arrow),
+                    subtitle: Text(docs[index].id
+                        // DateFormat("'Hora: 'HH:mm:ss 'Dia: 'dd-MM-yyyy").format(
+                        //     DateTime.fromMillisecondsSinceEpoch(
+                        //             (data['created'] as Timestamp)
+                        //                 .millisecondsSinceEpoch)
+                        //         .toLocal())
+                        ),
+                    leading: CircleAvatar(
+                      child: IconButton(
+                          onPressed: () {
+                            _comeInGame(
+                                context: context,
+                                isHost: false,
+                                gameId: docs[index].id);
+                          },
+                          icon: const Icon(Icons.play_arrow)),
                     ),
                     trailing: Text(
                       data['num_players'].toString(),
@@ -81,7 +95,7 @@ class GameRoom extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _startAddNewGame(context);
+          _comeInGame(context: context, isHost: true);
         },
         child: const Icon(Icons.add),
       ),
