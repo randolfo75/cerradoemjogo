@@ -2,17 +2,17 @@ import 'package:cerrado/game_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class NewGame extends StatefulWidget {
-  const NewGame({Key? key, required this.name, this.gameId}) : super(key: key);
+class InGame extends StatefulWidget {
+  const InGame({Key? key, required this.name, this.gameId}) : super(key: key);
 
   final String name;
   final String? gameId;
 
   @override
-  State<NewGame> createState() => _NewGameState();
+  State<InGame> createState() => _InGameState();
 }
 
-class _NewGameState extends State<NewGame> {
+class _InGameState extends State<InGame> {
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 

@@ -1,5 +1,4 @@
-import 'package:cerrado/game_page.dart';
-import 'package:cerrado/new_game_widget.dart';
+import 'package:cerrado/in_game_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +18,7 @@ class GameRoom extends StatelessWidget {
         context: context,
         isScrollControlled: true,
         builder: (_) {
-          return NewGame(
+          return InGame(
             name: user.displayName!,
             gameId: gameId,
           );
