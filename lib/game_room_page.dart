@@ -14,15 +14,13 @@ class GameRoom extends StatelessWidget {
   final String title;
   final user = FirebaseAuth.instance.currentUser!;
 
-  void _comeInGame(
-      {required BuildContext context, required bool isHost, String? gameId}) {
+  void _comeInGame({required BuildContext context, String? gameId}) {
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         builder: (_) {
           return NewGame(
             name: user.displayName!,
-            isHost: isHost,
             gameId: gameId,
           );
         });
@@ -65,20 +63,17 @@ class GameRoom extends StatelessWidget {
                   Map<String, dynamic> data = docs[index].data();
                   return ListTile(
                     title: Text(data['name']),
-                    subtitle: Text(docs[index].id
-                        // DateFormat("'Hora: 'HH:mm:ss 'Dia: 'dd-MM-yyyy").format(
-                        //     DateTime.fromMillisecondsSinceEpoch(
-                        //             (data['created'] as Timestamp)
-                        //                 .millisecondsSinceEpoch)
-                        //         .toLocal())
-                        ),
+                    subtitle: Text(
+                        DateFormat("'Hora: 'HH:mm:ss 'Dia: 'dd-MM-yyyy").format(
+                            DateTime.fromMillisecondsSinceEpoch(
+                                    (data['created'] as Timestamp)
+                                        .millisecondsSinceEpoch)
+                                .toLocal())),
                     leading: CircleAvatar(
                       child: IconButton(
                           onPressed: () {
                             _comeInGame(
-                                context: context,
-                                isHost: false,
-                                gameId: docs[index].id);
+                                context: context, gameId: docs[index].id);
                           },
                           icon: const Icon(Icons.play_arrow)),
                     ),
@@ -95,7 +90,7 @@ class GameRoom extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _comeInGame(context: context, isHost: true);
+          _comeInGame(context: context);
         },
         child: const Icon(Icons.add),
       ),

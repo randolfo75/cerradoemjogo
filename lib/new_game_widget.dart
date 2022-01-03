@@ -3,12 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class NewGame extends StatefulWidget {
-  const NewGame(
-      {Key? key, required this.name, required this.isHost, this.gameId})
-      : super(key: key);
+  const NewGame({Key? key, required this.name, this.gameId}) : super(key: key);
 
   final String name;
-  final bool isHost;
   final String? gameId;
 
   @override
@@ -26,9 +23,6 @@ class _NewGameState extends State<NewGame> {
       'status': 'open',
       'created': DateTime.now(),
       'num_players': 1,
-    }).catchError((error) {
-      debugPrint('Error creating game: ${error ?? 'unknown'}');
-      return null;
     });
   }
 
@@ -76,13 +70,16 @@ class _NewGameState extends State<NewGame> {
               ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      if (widget.isHost) {
+                      if (widget.gameId == null) {
                         createGame().then((value) {
                           Navigator.of(context)
                               .pushReplacement(MaterialPageRoute(
                                   builder: (_) => GamePage(
                                         gameId: value.id,
                                       )));
+                        }).catchError((error) {
+                          debugPrint(
+                              'Error creating game: ${error ?? 'unknown'}');
                         });
                       } else {
                         Navigator.of(context).pushReplacement(MaterialPageRoute(
@@ -92,25 +89,32 @@ class _NewGameState extends State<NewGame> {
                       }
                     }
                   },
-                  child: const Text('Criar jogo')),
+                  child: widget.gameId == null
+                      ? const Text('Criar jogo')
+                      : const Text('Jogar')),
               const Divider(),
               ElevatedButton(
-                  onPressed: () {
-                    if (widget.isHost) {
-                      createGame().then((value) {
-                        Navigator.of(context).pushReplacement(MaterialPageRoute(
-                            builder: (_) => GamePage(
-                                  gameId: value.id,
-                                )));
-                      });
-                    } else {
+                onPressed: () {
+                  if (widget.gameId == null) {
+                    createGame().then((value) {
                       Navigator.of(context).pushReplacement(MaterialPageRoute(
                           builder: (_) => GamePage(
-                                gameId: widget.gameId,
+                                gameId: value.id,
                               )));
-                    }
-                  },
-                  child: const Text('Criar jogo com seu nome')),
+                    }).catchError((error) {
+                      debugPrint('Error creating game: ${error ?? 'unknown'}');
+                    });
+                  } else {
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(
+                        builder: (_) => GamePage(
+                              gameId: widget.gameId,
+                            )));
+                  }
+                },
+                child: widget.gameId == null
+                    ? const Text('Criar jogo com seu nome')
+                    : const Text('Jogar com seu nome'),
+              ),
             ],
           ),
         )));
