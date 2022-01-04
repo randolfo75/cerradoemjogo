@@ -44,7 +44,10 @@ class GameRoom extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance.collection('games').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('games')
+            .where('status', isEqualTo: 'open')
+            .snapshots(),
         builder: (context,
             AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
