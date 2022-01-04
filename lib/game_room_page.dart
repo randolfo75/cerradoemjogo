@@ -19,7 +19,6 @@ class GameRoom extends StatelessWidget {
         isScrollControlled: true,
         builder: (_) {
           return InGame(
-            name: user.displayName!,
             gameId: gameId,
           );
         });

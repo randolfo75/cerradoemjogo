@@ -1,12 +1,13 @@
 import 'package:cerrado/game_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class InGame extends StatefulWidget {
-  const InGame({Key? key, required this.name, this.gameId}) : super(key: key);
+  InGame({Key? key, this.gameId}) : super(key: key);
 
-  final String name;
   final String? gameId;
+  final user = FirebaseAuth.instance.currentUser!;
 
   @override
   State<InGame> createState() => _InGameState();
@@ -17,12 +18,13 @@ class _InGameState extends State<InGame> {
   final _formKey = GlobalKey<FormState>();
 
   CollectionReference games = FirebaseFirestore.instance.collection('games');
-  Future<DocumentReference> createGame() {
+  Future<DocumentReference> createGame(String name) {
     return games.add({
-      'name': widget.name,
+      'name': name,
       'status': 'open',
       'created': DateTime.now(),
       'num_players': 1,
+      'host': widget.user.uid,
     });
   }
 
@@ -62,8 +64,10 @@ class _InGameState extends State<InGame> {
                   },
                   // autofocus: true,
                   maxLength: 20,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do Jogo',
+                  decoration: InputDecoration(
+                    labelText: widget.gameId == null
+                        ? 'Nome do Jogo'
+                        : 'Nome do Jogador',
                   ),
                 ),
               ),
@@ -71,7 +75,7 @@ class _InGameState extends State<InGame> {
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       if (widget.gameId == null) {
-                        createGame().then((value) {
+                        createGame(_nameController.text).then((value) {
                           Navigator.of(context)
                               .pushReplacement(MaterialPageRoute(
                                   builder: (_) => GamePage(
@@ -96,7 +100,7 @@ class _InGameState extends State<InGame> {
               ElevatedButton(
                 onPressed: () {
                   if (widget.gameId == null) {
-                    createGame().then((value) {
+                    createGame(widget.user.displayName!).then((value) {
                       Navigator.of(context).pushReplacement(MaterialPageRoute(
                           builder: (_) => GamePage(
                                 gameId: value.id,
