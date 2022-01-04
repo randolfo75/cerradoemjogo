@@ -23,7 +23,7 @@ class _InGameState extends State<InGame> {
       'name': name,
       'status': 'open',
       'created': DateTime.now(),
-      'num_players': 1,
+      'num_players': 0,
       'host': widget.user.uid,
     });
   }

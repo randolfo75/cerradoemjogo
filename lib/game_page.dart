@@ -15,13 +15,14 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   final gamesRef = FirebaseFirestore.instance.collection('games');
   CollectionReference<Map<String, dynamic>>? playersRef;
+  DocumentReference<Map<String, dynamic>>? playerRef;
   CollectionReference<Map<String, dynamic>>? cardsRef;
   DocumentReference<Map<String, dynamic>>? gameRef;
   bool isHost = false;
   String? gameStatus;
   Map<String, dynamic> cardsMap = {};
   List<String> deck = [];
-  int num_players = 0;
+  int numPlayers = 0;
   List<List<String>> decks = [];
 
   @override
@@ -40,11 +41,20 @@ class _GamePageState extends State<GamePage> {
       }
     });
 
-    playersRef!.add({
-      'uid': widget.user.uid,
+    // TODO: Change player id to user id
+    playersRef!.doc().set({
+      // playersRef!.doc(widget.user.uid).set({
+
       'name': widget.user.displayName,
+      'num_cards': 0,
     });
 
+    gameRef!.update({'num_players': FieldValue.increment(1)});
+
+    playerRef = FirebaseFirestore.instance
+        .doc('games/${widget.gameId}/players/${widget.user.uid}');
+
+    // Read cards attributes from Firestore
     cardsRef!.get().then((QuerySnapshot querySnapshot) {
       for (var doc in querySnapshot.docs) {
         cardsMap[doc.id] = doc.data() as Map<String, dynamic>;
@@ -61,11 +71,10 @@ class _GamePageState extends State<GamePage> {
     });
     deck.shuffle();
 
-    num_players = 0;
     WriteBatch decksBatch = FirebaseFirestore.instance.batch();
     playersRef!.get().then((QuerySnapshot querySnapshot) {
-      num_players = querySnapshot.docs.length;
-      int numCardsByPlayer = deck.length ~/ num_players;
+      numPlayers = querySnapshot.docs.length;
+      int numCardsByPlayer = deck.length ~/ numPlayers;
       int index = 0;
       for (var player in querySnapshot.docs) {
         List<String> playerDeck = deck.sublist(numCardsByPlayer * index,
@@ -74,6 +83,7 @@ class _GamePageState extends State<GamePage> {
           DocumentReference<Map<String, dynamic>> cardRef =
               playersRef!.doc(player.id).collection('cards').doc(cardId);
           decksBatch.set(cardRef, cardsMap[cardId]);
+          decksBatch.update(player.reference, {'num_cards': numCardsByPlayer});
         }
       }
       decksBatch.commit();
@@ -102,6 +112,10 @@ class _GamePageState extends State<GamePage> {
                     final player = players[index].data();
                     return ListTile(
                       title: Text(player['name']),
+                      trailing: Text(
+                        player['num_cards'].toString(),
+                        style: Theme.of(context).textTheme.headline5,
+                      ),
                     );
                   },
                 );
