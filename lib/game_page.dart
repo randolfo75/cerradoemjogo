@@ -60,7 +60,7 @@ class _GamePageState extends State<GamePage> {
     deck.shuffle();
 
     num_players = 0;
-    // WriteBatch decksBatch = FirebaseFirestore.instance.batch();
+    WriteBatch decksBatch = FirebaseFirestore.instance.batch();
     playersRef!.get().then((QuerySnapshot querySnapshot) {
       num_players = querySnapshot.docs.length;
       int numCardsByPlayer = deck.length ~/ num_players;
@@ -69,13 +69,12 @@ class _GamePageState extends State<GamePage> {
         List<String> playerDeck = deck.sublist(numCardsByPlayer * index,
             numCardsByPlayer * index + numCardsByPlayer);
         for (var cardId in playerDeck) {
-          playersRef!
-              .doc(doc.id)
-              .collection('cards')
-              .doc(cardId)
-              .set(cardsMap[cardId]);
+          DocumentReference<Map<String, dynamic>> cardRef =
+              playersRef!.doc(doc.id).collection('cards').doc(cardId);
+          decksBatch.set(cardRef, cardsMap[cardId]);
         }
       }
+      decksBatch.commit();
     });
   }
 
