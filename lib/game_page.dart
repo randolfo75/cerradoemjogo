@@ -17,7 +17,7 @@ class _GamePageState extends State<GamePage> {
   CollectionReference<Map<String, dynamic>>? playersRef;
   CollectionReference<Map<String, dynamic>>? cardsRef;
   DocumentReference<Map<String, dynamic>>? gameRef;
-  bool? isHost;
+  bool isHost = false;
   String? gameStatus;
   Map<String, dynamic> cardsMap = {};
   List<String> deck = [];
@@ -33,8 +33,10 @@ class _GamePageState extends State<GamePage> {
 
     gameRef!.get().then((snapshot) {
       if (snapshot.exists) {
-        isHost = widget.user.uid == snapshot['host'];
-        gameStatus = snapshot['status'];
+        setState(() {
+          isHost = widget.user.uid == snapshot['host'];
+          gameStatus = snapshot['status'];
+        });
       }
     });
 
@@ -65,12 +67,12 @@ class _GamePageState extends State<GamePage> {
       num_players = querySnapshot.docs.length;
       int numCardsByPlayer = deck.length ~/ num_players;
       int index = 0;
-      for (var doc in querySnapshot.docs) {
+      for (var player in querySnapshot.docs) {
         List<String> playerDeck = deck.sublist(numCardsByPlayer * index,
             numCardsByPlayer * index + numCardsByPlayer);
         for (var cardId in playerDeck) {
           DocumentReference<Map<String, dynamic>> cardRef =
-              playersRef!.doc(doc.id).collection('cards').doc(cardId);
+              playersRef!.doc(player.id).collection('cards').doc(cardId);
           decksBatch.set(cardRef, cardsMap[cardId]);
         }
       }
@@ -81,59 +83,58 @@ class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Cerrado em Jogo'),
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: playersRef!.snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Text('Loading...');
-                  }
-                  final players = snapshot.data!.docs;
-                  return ListView.builder(
-                    itemCount: players.length,
-                    itemBuilder: (context, index) {
-                      final player = players[index].data();
-                      return ListTile(
-                        title: Text(player['name']),
-                      );
-                    },
-                  );
-                },
-              ),
+      appBar: AppBar(
+        title: const Text('Cerrado em Jogo'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: playersRef!.snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Text('Loading...');
+                }
+                final players = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: players.length,
+                  itemBuilder: (context, index) {
+                    final player = players[index].data();
+                    return ListTile(
+                      title: Text(player['name']),
+                    );
+                  },
+                );
+              },
             ),
-            Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text('Cartas: ${cardsMap.length}'),
-                  ElevatedButton(
-                    child: const Text('Iniciar'),
-                    onPressed: () {
-                      debugPrint("${cardsMap.length}");
-                      gameRef!.update({
-                        'status': 'started',
-                      });
+          ),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Text('Cartas: ${cardsMap.length}'),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: Visibility(
+        child: FloatingActionButton(
+          onPressed: () {
+            gameRef!.update({
+              'status': 'started',
+            });
 
-                      giveCards();
-                    },
-                  ),
-                  ElevatedButton(
-                    child: const Text('Finalizar'),
-                    onPressed: () {
-                      gameRef!.update({
-                        'status': 'ended',
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ));
+            giveCards();
+
+            setState(() {
+              gameStatus = 'started';
+            });
+          },
+          child: const Icon(Icons.play_arrow),
+        ),
+        visible: isHost && gameStatus == 'open',
+      ),
+    );
   }
 }
