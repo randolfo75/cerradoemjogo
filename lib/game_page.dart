@@ -24,6 +24,8 @@ class _GamePageState extends State<GamePage> {
   List<String> deck = [];
   int numPlayers = 0;
   List<List<String>> decks = [];
+  List<String> turnPlayersList = [];
+  int turn = 0;
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _GamePageState extends State<GamePage> {
     gameRef = FirebaseFirestore.instance.doc('games/${widget.gameId}');
     cardsRef = FirebaseFirestore.instance.collection('cards');
 
+    // Get the game status and ishost flag
     gameRef!.get().then((snapshot) {
       if (snapshot.exists) {
         setState(() {
@@ -42,6 +45,8 @@ class _GamePageState extends State<GamePage> {
     });
 
     // TODO: Change player id to user id
+    // in debug mode allow a user to enter multiple times
+    // Add player to game
     playersRef!.doc().set({
       // playersRef!.doc(widget.user.uid).set({
 
@@ -49,6 +54,7 @@ class _GamePageState extends State<GamePage> {
       'num_cards': 0,
     });
 
+    // Refresh number of players
     gameRef!.update({'num_players': FieldValue.increment(1)});
 
     playerRef = FirebaseFirestore.instance
@@ -65,7 +71,7 @@ class _GamePageState extends State<GamePage> {
   }
 
   void giveCards() {
-    // List of cards
+    // Create deck
     cardsMap.forEach((key, value) {
       deck.add(key);
     });
@@ -77,16 +83,28 @@ class _GamePageState extends State<GamePage> {
       int numCardsByPlayer = deck.length ~/ numPlayers;
       int index = 0;
       for (var player in querySnapshot.docs) {
+        turnPlayersList.add(player.id);
         List<String> playerDeck = deck.sublist(numCardsByPlayer * index,
             numCardsByPlayer * index + numCardsByPlayer);
         for (var cardId in playerDeck) {
           DocumentReference<Map<String, dynamic>> cardRef =
               playersRef!.doc(player.id).collection('cards').doc(cardId);
+          // Include card in player's deck
           decksBatch.set(cardRef, cardsMap[cardId]);
+          // Refresh player's number of cards
           decksBatch.update(player.reference, {'num_cards': numCardsByPlayer});
         }
       }
-      decksBatch.commit();
+
+      decksBatch.update(gameRef!, {
+        'status': 'playing',
+      });
+
+      decksBatch.commit().then((value) {
+        setState(() {
+          gameStatus = 'playing';
+        });
+      });
     });
   }
 
@@ -116,6 +134,14 @@ class _GamePageState extends State<GamePage> {
                         player['num_cards'].toString(),
                         style: Theme.of(context).textTheme.headline5,
                       ),
+                      subtitle: gameStatus == 'playing' &&
+                              turnPlayersList[turn] == players[index].id
+                          ? const Text('Sua vez!')
+                          : const Text(''),
+                      tileColor: gameStatus == 'playing' &&
+                              turnPlayersList[turn] == players[index].id
+                          ? Theme.of(context).backgroundColor
+                          : null,
                     );
                   },
                 );
@@ -135,15 +161,7 @@ class _GamePageState extends State<GamePage> {
       floatingActionButton: Visibility(
         child: FloatingActionButton(
           onPressed: () {
-            gameRef!.update({
-              'status': 'started',
-            });
-
             giveCards();
-
-            setState(() {
-              gameStatus = 'started';
-            });
           },
           child: const Icon(Icons.play_arrow),
         ),
