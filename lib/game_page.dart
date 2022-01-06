@@ -36,6 +36,7 @@ class _GamePageState extends State<GamePage> {
   List<List<String>> decks = [];
   List<String> turnPlayersList = [];
   int turn = 0;
+  String hostId = '';
 
   @override
   void dispose() {
@@ -76,8 +77,8 @@ class _GamePageState extends State<GamePage> {
         setState(() {
           if (snapshot.data()!.containsKey('host') && playerId != null) {
             isHost = playerId == snapshot['host'];
+            hostId = snapshot['host'];
           }
-
           gameStatus = snapshot['status'];
         });
       }
@@ -104,7 +105,7 @@ class _GamePageState extends State<GamePage> {
 
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
 
-    // Get all players cards attributes
+    // Get all players cards first card attributes
     for (String playerId in turnPlayersList) {
       Query<Map<String, dynamic>> playerCards = playersRef!
           .doc(playerId)
@@ -142,17 +143,19 @@ class _GamePageState extends State<GamePage> {
               .doc(playerId)
               .update({'num_cards': FieldValue.increment(numPlayers - 1)});
         }
-        // Remove cards from players (winner and losers)
+        // Annotate to remove cards from players (winner and losers)
         lostCards.add(playersCardsId[playerId] as String);
         // Remove first card
         playerCards.doc(playersCardsId[playerId]).delete();
       }
+
       CollectionReference<Map<String, dynamic>> playerCards =
           playersRef!.doc(winnerId).collection('cards');
-      // Get last card
+      // Get last card order to add new card in bottom
       querySnapshot =
           await playerCards.orderBy('order', descending: true).get();
       int newOrder = querySnapshot.docs[0].data()['order'] as int;
+
       // Add cards to winner
       int index = 0;
       for (String cardId in lostCards) {
@@ -160,6 +163,20 @@ class _GamePageState extends State<GamePage> {
         cardsMap[cardId]['order'] = newOrder + index;
         playerCards.doc(cardId).set(cardsMap[cardId]);
       }
+
+      // Verify if game is over
+      if (gameStatus == 'playing' && numPlayers == 1) {
+        gameRef!.update({'status': 'over'});
+      }
+      for (String playerId in turnPlayersList) {
+        DocumentSnapshot<Map<String, dynamic>> playerData =
+            await playersRef!.doc(playerId).get();
+        if (playerData.data()!['num_cards'] == cardsMap.length) {
+          gameRef!.update({'status': 'over'});
+          break;
+        }
+      }
+
       setState(() {
         if (turn < turnPlayersList.length - 1) {
           turn++;
@@ -233,7 +250,12 @@ class _GamePageState extends State<GamePage> {
                   itemBuilder: (context, index) {
                     final player = players[index].data();
                     return ListTile(
-                        title: Text(player['name']),
+                        title: _playerTitle(player, gameStatus),
+                        leading: hostId == players[index].id
+                            ? const CircleAvatar(
+                                child: Icon(Icons.person),
+                              )
+                            : null,
                         trailing: Text(
                           player['num_cards'].toString(),
                           style: Theme.of(context).textTheme.headline5,
@@ -332,5 +354,25 @@ class _GamePageState extends State<GamePage> {
         visible: isHost && gameStatus == 'open',
       ),
     );
+  }
+
+  Widget _playerTitle(player, gameStatus) {
+    if (gameStatus != 'open' && player['num_cards'] == 0) {
+      return Text(
+        "${player['name']} PERDEU",
+        style: Theme.of(context).textTheme.headline5,
+      );
+    }
+    if (gameStatus != 'open' && player['num_cards'] == cardsMap.length) {
+      return Text(
+        "${player['name']} GANHOU",
+        style: Theme.of(context).textTheme.headline5,
+      );
+    } else {
+      return Text(
+        "${player['name']}",
+        style: Theme.of(context).textTheme.headline6,
+      );
+    }
   }
 }
