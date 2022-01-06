@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cerrado/attibuteWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,8 +9,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class GamePage extends StatefulWidget {
   final String? gameId;
   final user = FirebaseAuth.instance.currentUser!;
+  final bool isHost;
 
-  GamePage({Key? key, required this.gameId}) : super(key: key);
+  GamePage({Key? key, required this.gameId, required this.isHost})
+      : super(key: key);
 
   @override
   _GamePageState createState() => _GamePageState();
@@ -19,11 +22,13 @@ class _GamePageState extends State<GamePage> {
   final gamesRef = FirebaseFirestore.instance.collection('games');
   CollectionReference<Map<String, dynamic>>? playersRef;
   DocumentReference<Map<String, dynamic>>? playerRef;
-  CollectionReference<Map<String, dynamic>>? cardsRef;
-  CollectionReference<Map<String, dynamic>>? cardRef;
+  CollectionReference<Map<String, dynamic>>? cardsDeckRef =
+      FirebaseFirestore.instance.collection('cards');
+  Query<Map<String, dynamic>>? playerDeckRef;
   DocumentReference<Map<String, dynamic>>? gameRef;
   StreamSubscription? sub;
   bool isHost = false;
+  String? playerId;
   String? gameStatus;
   Map<String, dynamic> cardsMap = {};
   List<String> deck = [];
@@ -45,37 +50,44 @@ class _GamePageState extends State<GamePage> {
     playersRef =
         FirebaseFirestore.instance.collection('games/${widget.gameId}/players');
     gameRef = FirebaseFirestore.instance.doc('games/${widget.gameId}');
-    cardsRef = FirebaseFirestore.instance.collection('cards');
-    cardRef = FirebaseFirestore.instance
-        .collection('games/${widget.gameId}/players/${widget.user.uid}/cards');
+
+    // TODO: Change player id to user id
+    // in debug mode allow a user to enter multiple times
+    // Add player to game
+    playersRef!.add({
+      // playersRef!.doc(widget.user.uid).set({
+      'name': widget.user.displayName,
+      'num_cards': 0,
+    }).then((value) {
+      playerId = value.id;
+      playerDeckRef = FirebaseFirestore.instance
+          .collection('games/${widget.gameId}/players/$playerId/cards')
+          .orderBy('order', descending: false);
+      playerRef = FirebaseFirestore.instance
+          .doc('games/${widget.gameId}/players/$playerId');
+      if (widget.isHost) {
+        gameRef!.update({'host': playerId});
+      }
+    });
 
     // Listen game status and ishost flag
     sub = gameRef!.snapshots().listen((snapshot) {
       if (snapshot.exists) {
         setState(() {
-          isHost = widget.user.uid == snapshot['host'];
+          if (snapshot.data()!.containsKey('host') && playerId != null) {
+            isHost = playerId == snapshot['host'];
+          }
+
           gameStatus = snapshot['status'];
         });
       }
     });
 
-    // TODO: Change player id to user id
-    // in debug mode allow a user to enter multiple times
-    // Add player to game
-    // playersRef!.doc().set({
-    playersRef!.doc(widget.user.uid).set({
-      'name': widget.user.displayName,
-      'num_cards': 0,
-    });
-
     // Refresh number of players
     gameRef!.update({'num_players': FieldValue.increment(1)});
 
-    playerRef = FirebaseFirestore.instance
-        .doc('games/${widget.gameId}/players/${widget.user.uid}');
-
     // Read cards attributes from Firestore
-    cardsRef!.get().then((QuerySnapshot querySnapshot) {
+    cardsDeckRef!.get().then((QuerySnapshot querySnapshot) {
       for (var doc in querySnapshot.docs) {
         cardsMap[doc.id] = doc.data() as Map<String, dynamic>;
       }
@@ -84,8 +96,80 @@ class _GamePageState extends State<GamePage> {
     super.initState();
   }
 
-  void _compareAttribute(String attributeName) {
+  void _processRound(String attributeName) async {
     debugPrint('compareAttribute: $attributeName');
+
+    Map<String, double> playersAttributes = {};
+    Map<String, String> playersCardsId = {};
+
+    QuerySnapshot<Map<String, dynamic>> querySnapshot;
+
+    // Get all players cards attributes
+    for (String playerId in turnPlayersList) {
+      Query<Map<String, dynamic>> playerCards = playersRef!
+          .doc(playerId)
+          .collection('cards')
+          .orderBy('order', descending: false);
+      querySnapshot = await playerCards.get();
+      playersAttributes[playerId] = querySnapshot.docs[0].data()[attributeName];
+      playersCardsId[playerId] = querySnapshot.docs[0].id;
+    }
+
+    // Max attribute value
+    double maxAttribute = playersAttributes.values.reduce(max);
+    // Filter players with max attribute value
+    List<String> maxAttributePlayers = playersAttributes.keys
+        .where((playerId) => playersAttributes[playerId] == maxAttribute)
+        .toList();
+
+    if (maxAttributePlayers.length == 1) {
+      // Winner
+      String winnerId = maxAttributePlayers[0];
+
+      // Update players cards
+      List<String> lostCards = [];
+      for (String playerId in turnPlayersList) {
+        CollectionReference<Map<String, dynamic>> playerCards =
+            playersRef!.doc(playerId).collection('cards');
+        if (winnerId != playerId) {
+          // Losers
+          playersRef!
+              .doc(playerId)
+              .update({'num_cards': FieldValue.increment(-1)});
+        } else {
+          // Winner
+          playersRef!
+              .doc(playerId)
+              .update({'num_cards': FieldValue.increment(numPlayers - 1)});
+        }
+        // Remove cards from players (winner and losers)
+        lostCards.add(playersCardsId[playerId] as String);
+        // Remove first card
+        playerCards.doc(playersCardsId[playerId]).delete();
+      }
+      CollectionReference<Map<String, dynamic>> playerCards =
+          playersRef!.doc(winnerId).collection('cards');
+      // Get last card
+      querySnapshot =
+          await playerCards.orderBy('order', descending: true).get();
+      int newOrder = querySnapshot.docs[0].data()['order'] as int;
+      // Add cards to winner
+      int index = 0;
+      for (String cardId in lostCards) {
+        index++;
+        cardsMap[cardId]['order'] = newOrder + index;
+        playerCards.doc(cardId).set(cardsMap[cardId]);
+      }
+      setState(() {
+        if (turn < turnPlayersList.length - 1) {
+          turn++;
+        } else {
+          turn = 0;
+        }
+      });
+    } else {
+      // Draw
+    }
   }
 
   void giveCards() {
@@ -104,14 +188,19 @@ class _GamePageState extends State<GamePage> {
         turnPlayersList.add(player.id);
         List<String> playerDeck = deck.sublist(numCardsByPlayer * index,
             numCardsByPlayer * index + numCardsByPlayer);
+        int order = 0;
         for (var cardId in playerDeck) {
-          DocumentReference<Map<String, dynamic>> cardRef =
+          order++;
+          DocumentReference<Map<String, dynamic>> cardDeckRef =
               playersRef!.doc(player.id).collection('cards').doc(cardId);
+          // Include order in card
+          cardsMap[cardId]['order'] = order;
           // Include card in player's deck
-          decksBatch.set(cardRef, cardsMap[cardId]);
+          decksBatch.set(cardDeckRef, cardsMap[cardId]);
           // Refresh player's number of cards
           decksBatch.update(player.reference, {'num_cards': numCardsByPlayer});
         }
+        index++;
       }
 
       decksBatch.update(gameRef!, {
@@ -131,7 +220,7 @@ class _GamePageState extends State<GamePage> {
       body: Column(
         children: [
           Expanded(
-            flex: 1,
+            flex: 2,
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: playersRef!.snapshots(),
               builder: (context, snapshot) {
@@ -151,8 +240,8 @@ class _GamePageState extends State<GamePage> {
                         ),
                         subtitle: gameStatus == 'playing' &&
                                 turnPlayersList[turn] == players[index].id
-                            ? const Text('Sua vez!')
-                            : const Text(''),
+                            ? const Text('Vez da rodada!')
+                            : null,
                         tileColor: gameStatus == 'playing' &&
                                 turnPlayersList[turn] == players[index].id
                             ? Theme.of(context).backgroundColor
@@ -164,71 +253,73 @@ class _GamePageState extends State<GamePage> {
             ),
           ),
           Expanded(
-              flex: 2,
-              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: cardRef!.snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Text('Loading...');
-                  }
-                  final cards = snapshot.data!.docs;
-                  if (cards.isEmpty) {
-                    return const Text('Você não possui cartas');
-                  }
-                  return Container(
-                    alignment: Alignment.bottomLeft,
-                    decoration: const BoxDecoration(
-                        image: DecorationImage(
-                            image:
-                                ExactAssetImage('assets/images/card_back.jpg'),
-                            opacity: 0.2,
-                            fit: BoxFit.cover)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          "${cards[0]['name']}",
-                          style: Theme.of(context).textTheme.headline4,
-                        ),
-                        Text(
-                          "${cards[0]['subname']}",
-                          style: Theme.of(context).textTheme.bodyText1,
-                        ),
-                        Text(
-                          "${cards[0]['description']}",
-                          style: Theme.of(context).textTheme.headline6,
-                        ),
-                        CardAttribute(
-                            attribute: cards[0],
-                            attributeName: 'atribute1',
-                            caption: 'Popularidade',
-                            compareFunction: _compareAttribute),
-                        CardAttribute(
-                            attribute: cards[0],
-                            attributeName: 'atribute2',
-                            caption: 'Peso (Kg)',
-                            compareFunction: _compareAttribute),
-                        CardAttribute(
-                            attribute: cards[0],
-                            attributeName: 'atribute3',
-                            caption: 'Filhotes',
-                            compareFunction: _compareAttribute),
-                        CardAttribute(
-                            attribute: cards[0],
-                            attributeName: 'atribute4',
-                            caption: 'Anos de vida',
-                            compareFunction: _compareAttribute),
-                        CardAttribute(
-                            attribute: cards[0],
-                            attributeName: 'atribute5',
-                            caption: 'Risco de extinção',
-                            compareFunction: _compareAttribute),
-                      ],
-                    ),
-                  );
-                },
-              )),
+              flex: 5,
+              child: playerDeckRef != null
+                  ? StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: playerDeckRef!.snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Text('Loading...');
+                        }
+                        final cards = snapshot.data!.docs;
+                        if (cards.isEmpty) {
+                          return const Text('Você não possui cartas');
+                        }
+                        return Container(
+                          alignment: Alignment.bottomLeft,
+                          decoration: const BoxDecoration(
+                              image: DecorationImage(
+                                  image: ExactAssetImage(
+                                      'assets/images/card_back.jpg'),
+                                  opacity: 0.2,
+                                  fit: BoxFit.cover)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                "${cards[0]['name']}",
+                                style: Theme.of(context).textTheme.headline4,
+                              ),
+                              Text(
+                                "${cards[0]['subname']}",
+                                style: Theme.of(context).textTheme.bodyText1,
+                              ),
+                              Text(
+                                "${cards[0]['description']}",
+                                style: Theme.of(context).textTheme.headline6,
+                              ),
+                              CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute1',
+                                  caption: 'Popularidade',
+                                  compareFunction: _processRound),
+                              CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute2',
+                                  caption: 'Peso (Kg)',
+                                  compareFunction: _processRound),
+                              CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute3',
+                                  caption: 'Filhotes',
+                                  compareFunction: _processRound),
+                              CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute4',
+                                  caption: 'Anos de vida',
+                                  compareFunction: _processRound),
+                              CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute5',
+                                  caption: 'Risco de extinção',
+                                  compareFunction: _processRound),
+                            ],
+                          ),
+                        );
+                      },
+                    )
+                  : const Text('Loading...')),
         ],
       ),
       floatingActionButton: Visibility(

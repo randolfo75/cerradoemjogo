@@ -24,7 +24,6 @@ class _InGameState extends State<InGame> {
       'status': 'open',
       'created': DateTime.now(),
       'num_players': 0,
-      'host': widget.user.uid,
     });
   }
 
@@ -80,6 +79,7 @@ class _InGameState extends State<InGame> {
                               .pushReplacement(MaterialPageRoute(
                                   builder: (_) => GamePage(
                                         gameId: value.id,
+                                        isHost: true,
                                       )));
                         }).catchError((error) {
                           debugPrint(
@@ -89,6 +89,7 @@ class _InGameState extends State<InGame> {
                         Navigator.of(context).pushReplacement(MaterialPageRoute(
                             builder: (_) => GamePage(
                                   gameId: widget.gameId,
+                                  isHost: false,
                                 )));
                       }
                     }
@@ -104,6 +105,7 @@ class _InGameState extends State<InGame> {
                       Navigator.of(context).pushReplacement(MaterialPageRoute(
                           builder: (_) => GamePage(
                                 gameId: value.id,
+                                isHost: true,
                               )));
                     }).catchError((error) {
                       debugPrint('Error creating game: ${error ?? 'unknown'}');
@@ -112,6 +114,7 @@ class _InGameState extends State<InGame> {
                     Navigator.of(context).pushReplacement(MaterialPageRoute(
                         builder: (_) => GamePage(
                               gameId: widget.gameId,
+                              isHost: false,
                             )));
                   }
                 },
