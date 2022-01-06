@@ -47,6 +47,30 @@ class _InGameState extends State<InGame> {
               top: 5),
           child: Column(
             children: [
+              ElevatedButton(
+                onPressed: () {
+                  if (widget.gameId == null) {
+                    createGame(widget.user.displayName!).then((value) {
+                      Navigator.of(context).pushReplacement(MaterialPageRoute(
+                          builder: (_) => GamePage(
+                                gameId: value.id,
+                                isHost: true,
+                              )));
+                    }).catchError((error) {
+                      debugPrint('Error creating game: ${error ?? 'unknown'}');
+                    });
+                  } else {
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(
+                        builder: (_) => GamePage(
+                              gameId: widget.gameId,
+                              isHost: false,
+                            )));
+                  }
+                },
+                child: widget.gameId == null
+                    ? const Text('Criar Jogo')
+                    : const Text('Jogar'),
+              ),
               Form(
                 key: _formKey,
                 child: TextFormField(
@@ -70,6 +94,7 @@ class _InGameState extends State<InGame> {
                   ),
                 ),
               ),
+              const Divider(),
               ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
@@ -80,6 +105,7 @@ class _InGameState extends State<InGame> {
                                   builder: (_) => GamePage(
                                         gameId: value.id,
                                         isHost: true,
+                                        newName: _nameController.text,
                                       )));
                         }).catchError((error) {
                           debugPrint(
@@ -90,38 +116,14 @@ class _InGameState extends State<InGame> {
                             builder: (_) => GamePage(
                                   gameId: widget.gameId,
                                   isHost: false,
+                                  newName: _nameController.text,
                                 )));
                       }
                     }
                   },
                   child: widget.gameId == null
-                      ? const Text('Criar jogo')
-                      : const Text('Jogar')),
-              const Divider(),
-              ElevatedButton(
-                onPressed: () {
-                  if (widget.gameId == null) {
-                    createGame(widget.user.displayName!).then((value) {
-                      Navigator.of(context).pushReplacement(MaterialPageRoute(
-                          builder: (_) => GamePage(
-                                gameId: value.id,
-                                isHost: true,
-                              )));
-                    }).catchError((error) {
-                      debugPrint('Error creating game: ${error ?? 'unknown'}');
-                    });
-                  } else {
-                    Navigator.of(context).pushReplacement(MaterialPageRoute(
-                        builder: (_) => GamePage(
-                              gameId: widget.gameId,
-                              isHost: false,
-                            )));
-                  }
-                },
-                child: widget.gameId == null
-                    ? const Text('Criar jogo com seu nome')
-                    : const Text('Jogar com seu nome'),
-              ),
+                      ? const Text('Criar jogo com nome diferente')
+                      : const Text('Jogar com nome diferente')),
             ],
           ),
         )));

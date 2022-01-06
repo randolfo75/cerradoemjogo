@@ -10,8 +10,9 @@ class GamePage extends StatefulWidget {
   final String? gameId;
   final user = FirebaseAuth.instance.currentUser!;
   final bool isHost;
+  final String? newName;
 
-  GamePage({Key? key, required this.gameId, required this.isHost})
+  GamePage({Key? key, required this.gameId, required this.isHost, this.newName})
       : super(key: key);
 
   @override
@@ -57,7 +58,7 @@ class _GamePageState extends State<GamePage> {
     // Add player to game
     playersRef!.add({
       // playersRef!.doc(widget.user.uid).set({
-      'name': widget.user.displayName,
+      'name': widget.newName ?? widget.user.displayName,
       'num_cards': 0,
     }).then((value) {
       playerId = value.id;
