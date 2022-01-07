@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.cerrado">
    <application
-        android:label="cerrado"
+        android:label="Cerrado em Jogo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
