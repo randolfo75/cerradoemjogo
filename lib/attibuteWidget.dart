@@ -7,21 +7,25 @@ class CardAttribute extends StatelessWidget {
       required this.attribute,
       required this.attributeName,
       required this.caption,
-      required this.compareFunction})
+      required this.compareFunction,
+      required this.yourTurn})
       : super(key: key);
 
   final Function compareFunction;
   final DocumentSnapshot<Map<String, dynamic>> attribute;
   final String attributeName;
   final String caption;
+  final bool yourTurn;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: TextButton(
-        onPressed: () {
-          compareFunction(attributeName);
-        },
+        onPressed: yourTurn
+            ? () {
+                compareFunction(attributeName);
+              }
+            : null,
         child: Text("$caption: ${attribute[attributeName]}",
             style: Theme.of(context).textTheme.headline6),
       ),
