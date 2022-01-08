@@ -21,7 +21,7 @@ class HomePage extends StatelessWidget {
           } else if (snapshot.hasError) {
             return Text(snapshot.error.toString());
           } else {
-            return const LoginPage(title: 'Como podemos te chamar?');
+            return const LoginPage(title: 'Opções de Entrada:');
           }
         });
   }
