@@ -18,7 +18,7 @@ A maior parte dos dados foi retirada dos portais Animal Diversity Web (ADW), vin
 
 - Anos de vida: corresponde ao tempo máximo de vida, em anos, já registrado para cada animal. 
 
-Risco de Extinção: uma espécie é considerada extinta quando desaparece definitivamente. A partir de dados da International Union for Conservation of Nature’s Red List of Threatened Species (IUCN) e do Instituto Chico Mendes de Conservação da Biodiversidade (ICMBio), indicamos o risco de extinção dos animais numa escala de 1 a 5:  quanto maior o valor, maior o risco.
+- Risco de Extinção: uma espécie é considerada extinta quando desaparece definitivamente. A partir de dados da International Union for Conservation of Nature’s Red List of Threatened Species (IUCN) e do Instituto Chico Mendes de Conservação da Biodiversidade (ICMBio), indicamos o risco de extinção dos animais numa escala de 1 a 5:  quanto maior o valor, maior o risco.
 
 
 
@@ -35,29 +35,50 @@ DIAGRAMAÇÃO
 Breno Martins
 
 DESENVOLVIMENTO DO APLICATIVO
-Randolfo Rodrigues
+Randolfo Rodrigues (Aberto a ajuda da comunidade)
 
 FOTOGRAFIAS
 José Augusto de Oliveira Motta 
 (Ara ararauna) (Inia araguaiaensis) (Caracara plancus) (Athene cunicularia) (Theristicus caudatus) (Caiman crocodilus) (Bothrops moojeni) (Boa constrictor amarali) (Panthera onca) (Colaptes campestris) (Rhinella diptycha) (Ramphastos toco) (Podocnemis expansa) (Ozotoceros bezoarticus)
+
 Carlos Augusto de Oliveira Motta (Rhea americana) (Myrmecophaga tridactyla) (Tamandua tetradactyla)
+
 Alexander Francis Meyer (Priodontes maximus) (Pteronura brasiliensis)
+
 Antônio Carlos Silva (Dendrocygna viduata)
+
 Ana Meister por Pixabay (Crotalus durissus)
+
 Andrea Bohl por Pixabay (Chrysocyon brachyurus)
+
 Ariesa66 por Pixabay (Nasua nasua)
+
 Caleb Ekeroth por Unsplash (homo sapiens)
+
 Dawn por Shutterstock (Potamotrygon motoro)
+
 Esther Castro por Pixabay (Cariama cristata)
+
 Fernando Calmon por Shutterstock (Didelphis albiventris) (Callithrix penicillata)
+
 Herbest Aust por Pixabay (Falco sparverius)
+
 Hugh Lansdown por Shutterstock (Procyon cancrivorus)
+
 Jaclyn Wildcat por Pixabay (Sarcoramphus papa)
+
 Joel Santana por Pixabay (Sapajus libidinosus) (Callithrix penicillata)
+
 Karsten Paulick por Pixabay (Hydrochoerus hydrochaeris)
-Lucas por Adobe Stock (Eira barbara) 
+
+Lucas por Adobe Stock (Eira barbara)
+
 Mendes por Adobe Stock (Lonchophylla dekeyseri)
+
 Ondrej Prosicky por Shutterstock (Leopardus wiedii)
+
 Rafael Martins por Adobe Stock (Lycalopex vetulus)
+
 R. Luxton por Shutterstock (Puma concolor)
+
 Viktor Čáp por Shutterstock (Coendou prehensilis)
