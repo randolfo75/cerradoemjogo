@@ -24,6 +24,8 @@ class _InGameState extends State<InGame> {
       'status': 'open',
       'created': DateTime.now(),
       'num_players': 0,
+      'turn': 0,
+      'turn_players': []
     });
   }
 

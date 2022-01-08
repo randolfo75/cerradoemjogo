@@ -75,12 +75,16 @@ class _GamePageState extends State<GamePage> {
     // Listen game status and ishost flag
     sub = gameRef!.snapshots().listen((snapshot) {
       if (snapshot.exists) {
+        Map<String, dynamic> gameData = snapshot.data()!;
+        if (gameData.containsKey('host') && playerId != null) {
+          isHost = gameData['host'] == playerId;
+          hostId = gameData['host'];
+        }
+        turn = gameData['turn'];
+        turnPlayersList = gameData['turn_players'].cast<String>();
+        numPlayers = gameData['num_players'];
         setState(() {
-          if (snapshot.data()!.containsKey('host') && playerId != null) {
-            isHost = playerId == snapshot['host'];
-            hostId = snapshot['host'];
-          }
-          gameStatus = snapshot['status'];
+          gameStatus = gameData['status'];
         });
       }
     });
@@ -166,9 +170,11 @@ class _GamePageState extends State<GamePage> {
       }
 
       // Verify if game is over
+      // Just one player left
       if (gameStatus == 'playing' && numPlayers == 1) {
         gameRef!.update({'status': 'over'});
       }
+      // One player with all cards
       for (String playerId in turnPlayersList) {
         DocumentSnapshot<Map<String, dynamic>> playerData =
             await playersRef!.doc(playerId).get();
@@ -178,12 +184,16 @@ class _GamePageState extends State<GamePage> {
         }
       }
 
-      setState(() {
-        if (turn < turnPlayersList.length - 1) {
-          turn++;
-        } else {
-          turn = 0;
+      // Next turn
+
+      FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot<Map<String, dynamic>> gameSnapshot =
+            await transaction.get(gameRef!);
+        int nextTurn = gameSnapshot.data()!['turn'] + 1;
+        if (nextTurn >= turnPlayersList.length) {
+          nextTurn = 0;
         }
+        transaction.update(gameRef!, {'turn': nextTurn});
       });
     } else {
       // Draw
@@ -199,7 +209,7 @@ class _GamePageState extends State<GamePage> {
 
     WriteBatch decksBatch = FirebaseFirestore.instance.batch();
     playersRef!.get().then((QuerySnapshot querySnapshot) {
-      numPlayers = querySnapshot.docs.length;
+      // numPlayers = querySnapshot.docs.length;
       int numCardsByPlayer = deck.length ~/ numPlayers;
       int index = 0;
       for (var player in querySnapshot.docs) {
@@ -207,6 +217,8 @@ class _GamePageState extends State<GamePage> {
         List<String> playerDeck = deck.sublist(numCardsByPlayer * index,
             numCardsByPlayer * index + numCardsByPlayer);
         int order = 0;
+
+        // Create player deck
         for (var cardId in playerDeck) {
           order++;
           DocumentReference<Map<String, dynamic>> cardDeckRef =
@@ -222,6 +234,7 @@ class _GamePageState extends State<GamePage> {
       }
 
       decksBatch.update(gameRef!, {
+        'turn_players': turnPlayersList,
         'status': 'playing',
       });
 
@@ -262,10 +275,12 @@ class _GamePageState extends State<GamePage> {
                           style: Theme.of(context).textTheme.headline5,
                         ),
                         subtitle: gameStatus == 'playing' &&
+                                turnPlayersList.isNotEmpty &&
                                 turnPlayersList[turn] == players[index].id
                             ? const Text('Vez da rodada!')
                             : null,
                         tileColor: gameStatus == 'playing' &&
+                                turnPlayersList.isNotEmpty &&
                                 turnPlayersList[turn] == players[index].id
                             ? Theme.of(context).backgroundColor
                             : null,
@@ -282,7 +297,7 @@ class _GamePageState extends State<GamePage> {
                       stream: playerDeckRef!.snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
-                          return const Text('Loading...');
+                          return const Text('Você não possui cartas ainda');
                         }
                         final cards = snapshot.data!.docs;
                         if (cards.isEmpty) {
@@ -296,63 +311,70 @@ class _GamePageState extends State<GamePage> {
                                       'assets/images/card_back.jpg'),
                                   opacity: 0.2,
                                   fit: BoxFit.cover)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                "${cards[0]['name']}",
-                                style: Theme.of(context).textTheme.headline4,
-                              ),
-                              Text(
-                                "${cards[0]['subname']}",
-                                style: Theme.of(context).textTheme.bodyText1,
-                              ),
-                              Text(
-                                "${cards[0]['description']}",
-                                style: Theme.of(context).textTheme.headline6,
-                              ),
-                              CardAttribute(
-                                attribute: cards[0],
-                                attributeName: 'atribute1',
-                                caption: 'Popularidade',
-                                compareFunction: _processRound,
-                                yourTurn: turnPlayersList[turn] == playerId,
-                              ),
-                              CardAttribute(
-                                attribute: cards[0],
-                                attributeName: 'atribute2',
-                                caption: 'Peso (Kg)',
-                                compareFunction: _processRound,
-                                yourTurn: turnPlayersList[turn] == playerId,
-                              ),
-                              CardAttribute(
-                                attribute: cards[0],
-                                attributeName: 'atribute3',
-                                caption: 'Filhotes',
-                                compareFunction: _processRound,
-                                yourTurn: turnPlayersList[turn] == playerId,
-                              ),
-                              CardAttribute(
-                                attribute: cards[0],
-                                attributeName: 'atribute4',
-                                caption: 'Anos de vida',
-                                compareFunction: _processRound,
-                                yourTurn: turnPlayersList[turn] == playerId,
-                              ),
-                              CardAttribute(
-                                attribute: cards[0],
-                                attributeName: 'atribute5',
-                                caption: 'Risco de extinção',
-                                compareFunction: _processRound,
-                                yourTurn: turnPlayersList[turn] == playerId,
-                              ),
-                            ],
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "${cards[0]['name']}",
+                                  style: Theme.of(context).textTheme.headline4,
+                                ),
+                                Text(
+                                  "${cards[0]['subname']}",
+                                  style: Theme.of(context).textTheme.bodyText1,
+                                ),
+                                Text(
+                                  "${cards[0]['description']}",
+                                  style: Theme.of(context).textTheme.headline6,
+                                ),
+                                CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute1',
+                                  caption: 'Popularidade',
+                                  compareFunction: _processRound,
+                                  yourTurn: turnPlayersList.isNotEmpty &&
+                                      turnPlayersList[turn] == playerId,
+                                ),
+                                CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute2',
+                                  caption: 'Peso (Kg)',
+                                  compareFunction: _processRound,
+                                  yourTurn: turnPlayersList.isNotEmpty &&
+                                      turnPlayersList[turn] == playerId,
+                                ),
+                                CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute3',
+                                  caption: 'Filhotes',
+                                  compareFunction: _processRound,
+                                  yourTurn: turnPlayersList.isNotEmpty &&
+                                      turnPlayersList[turn] == playerId,
+                                ),
+                                CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute4',
+                                  caption: 'Anos de vida',
+                                  compareFunction: _processRound,
+                                  yourTurn: turnPlayersList.isNotEmpty &&
+                                      turnPlayersList[turn] == playerId,
+                                ),
+                                CardAttribute(
+                                  attribute: cards[0],
+                                  attributeName: 'atribute5',
+                                  caption: 'Risco de extinção',
+                                  compareFunction: _processRound,
+                                  yourTurn: turnPlayersList.isNotEmpty &&
+                                      turnPlayersList[turn] == playerId,
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
                     )
-                  : const Text('Loading...')),
+                  : const Text('Cartas ainda não foram distribuidas')),
         ],
       ),
       floatingActionButton: Visibility(
