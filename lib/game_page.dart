@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math';
-
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:cerrado/attibuteWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +53,9 @@ class _GamePageState extends State<GamePage> {
         FirebaseFirestore.instance.collection('games/${widget.gameId}/players');
     gameRef = FirebaseFirestore.instance.doc('games/${widget.gameId}');
 
+    firebase_storage.FirebaseStorage fileRef =
+        firebase_storage.FirebaseStorage.instance;
+
     // TODO: Change player id to user id
     // in debug mode allow a user to enter multiple times
     // Add player to game
@@ -95,7 +98,14 @@ class _GamePageState extends State<GamePage> {
     // Read cards attributes from Firestore
     cardsDeckRef!.get().then((QuerySnapshot querySnapshot) {
       for (var doc in querySnapshot.docs) {
-        cardsMap[doc.id] = doc.data() as Map<String, dynamic>;
+        Map<String, dynamic> cardData = doc.data() as Map<String, dynamic>;
+        cardsMap[doc.id] = cardData;
+        fileRef
+            .ref('images/${cardData["image_name"]}')
+            .getDownloadURL()
+            .then((url) {
+          cardsMap[doc.id]['image_url'] = url;
+        });
       }
     });
 
@@ -117,7 +127,8 @@ class _GamePageState extends State<GamePage> {
           .collection('cards')
           .orderBy('order', descending: false);
       querySnapshot = await playerCards.get();
-      playersAttributes[playerId] = querySnapshot.docs[0].data()[attributeName];
+      playersAttributes[playerId] =
+          querySnapshot.docs[0].data()[attributeName].toDouble();
       playersCardsId[playerId] = querySnapshot.docs[0].id;
     }
 
@@ -250,131 +261,8 @@ class _GamePageState extends State<GamePage> {
       ),
       body: Column(
         children: [
-          Expanded(
-            flex: 2,
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: playersRef!.snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Text('Loading...');
-                }
-                final players = snapshot.data!.docs;
-                return ListView.builder(
-                  itemCount: players.length,
-                  itemBuilder: (context, index) {
-                    final player = players[index].data();
-                    return ListTile(
-                        title: _playerTitle(player, gameStatus),
-                        leading: hostId == players[index].id
-                            ? const CircleAvatar(
-                                child: Icon(Icons.person),
-                              )
-                            : null,
-                        trailing: Text(
-                          player['num_cards'].toString(),
-                          style: Theme.of(context).textTheme.headline5,
-                        ),
-                        subtitle: gameStatus == 'playing' &&
-                                turnPlayersList.isNotEmpty &&
-                                turnPlayersList[turn] == players[index].id
-                            ? const Text('Vez da rodada!')
-                            : null,
-                        tileColor: gameStatus == 'playing' &&
-                                turnPlayersList.isNotEmpty &&
-                                turnPlayersList[turn] == players[index].id
-                            ? Theme.of(context).backgroundColor
-                            : null,
-                        dense: true);
-                  },
-                );
-              },
-            ),
-          ),
-          Expanded(
-              flex: 5,
-              child: playerDeckRef != null
-                  ? StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      stream: playerDeckRef!.snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Text('Você não possui cartas ainda');
-                        }
-                        final cards = snapshot.data!.docs;
-                        if (cards.isEmpty) {
-                          return const Text('Você não possui cartas');
-                        }
-                        return Container(
-                          alignment: Alignment.bottomLeft,
-                          decoration: const BoxDecoration(
-                              image: DecorationImage(
-                                  image: ExactAssetImage(
-                                      'assets/images/card_back.jpg'),
-                                  opacity: 0.2,
-                                  fit: BoxFit.cover)),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "${cards[0]['name']}",
-                                  style: Theme.of(context).textTheme.headline4,
-                                ),
-                                Text(
-                                  "${cards[0]['subname']}",
-                                  style: Theme.of(context).textTheme.bodyText1,
-                                ),
-                                Text(
-                                  "${cards[0]['description']}",
-                                  style: Theme.of(context).textTheme.headline6,
-                                ),
-                                CardAttribute(
-                                  attribute: cards[0],
-                                  attributeName: 'atribute1',
-                                  caption: 'Popularidade',
-                                  compareFunction: _processRound,
-                                  yourTurn: turnPlayersList.isNotEmpty &&
-                                      turnPlayersList[turn] == playerId,
-                                ),
-                                CardAttribute(
-                                  attribute: cards[0],
-                                  attributeName: 'atribute2',
-                                  caption: 'Peso (Kg)',
-                                  compareFunction: _processRound,
-                                  yourTurn: turnPlayersList.isNotEmpty &&
-                                      turnPlayersList[turn] == playerId,
-                                ),
-                                CardAttribute(
-                                  attribute: cards[0],
-                                  attributeName: 'atribute3',
-                                  caption: 'Filhotes',
-                                  compareFunction: _processRound,
-                                  yourTurn: turnPlayersList.isNotEmpty &&
-                                      turnPlayersList[turn] == playerId,
-                                ),
-                                CardAttribute(
-                                  attribute: cards[0],
-                                  attributeName: 'atribute4',
-                                  caption: 'Anos de vida',
-                                  compareFunction: _processRound,
-                                  yourTurn: turnPlayersList.isNotEmpty &&
-                                      turnPlayersList[turn] == playerId,
-                                ),
-                                CardAttribute(
-                                  attribute: cards[0],
-                                  attributeName: 'atribute5',
-                                  caption: 'Risco de extinção',
-                                  compareFunction: _processRound,
-                                  yourTurn: turnPlayersList.isNotEmpty &&
-                                      turnPlayersList[turn] == playerId,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : const Text('Cartas ainda não foram distribuidas')),
+          _playersArea(),
+          _cardArea(),
         ],
       ),
       floatingActionButton: Visibility(
@@ -385,6 +273,200 @@ class _GamePageState extends State<GamePage> {
           child: const Icon(Icons.play_arrow),
         ),
         visible: isHost && gameStatus == 'open',
+      ),
+    );
+  }
+
+  Widget _cardArea() {
+    return Expanded(
+        flex: 5,
+        child: playerDeckRef != null
+            ? StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: playerDeckRef!.snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Text('Você não possui cartas ainda');
+                  }
+                  final cards = snapshot.data!.docs;
+                  if (cards.isEmpty) {
+                    return const Text('Você não possui cartas');
+                  }
+                  return Stack(children: [
+                    Container(
+                      decoration: const BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage('assets/images/card_back.jpg'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      alignment: Alignment.topLeft,
+                      decoration: BoxDecoration(
+                          image: DecorationImage(
+                              image: NetworkImage(cards[0]['image_url']),
+                              opacity: 1.0,
+                              fit: BoxFit.contain)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          _infoArea(cards[0]),
+                          _attributesArea(cards[0]),
+                        ],
+                      ),
+                    ),
+                  ]);
+                },
+              )
+            : const Text('Cartas ainda não foram distribuidas'));
+  }
+
+  Widget _infoArea(DocumentSnapshot<Map<String, dynamic>> card) {
+    return Flexible(
+      flex: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Card(
+            margin: const EdgeInsets.all(8.0),
+            child: Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    card['name'],
+                    style: const TextStyle(
+                        fontSize: 28.0,
+                        color: Colors.lightGreenAccent,
+                        fontWeight: FontWeight.normal),
+                  ),
+                  Text(
+                    card['subname'],
+                    style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.lightGreenAccent,
+                        fontWeight: FontWeight.normal),
+                  ),
+                  Text(
+                    card['description'] as String,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.lightGreenAccent,
+                        fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
+            ),
+            color: Colors.transparent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _attributesArea(DocumentSnapshot<Map<String, dynamic>> card) {
+    return Flexible(
+      flex: 1,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              CardAttribute(
+                attribute: card,
+                attributeName: 'attribute1',
+                caption: 'Popularidade',
+                compareFunction: _processRound,
+                yourTurn: turnPlayersList.isNotEmpty &&
+                    turnPlayersList[turn] == playerId,
+              ),
+              CardAttribute(
+                attribute: card,
+                attributeName: 'attribute2',
+                caption: 'Peso (Kg)',
+                compareFunction: _processRound,
+                yourTurn: turnPlayersList.isNotEmpty &&
+                    turnPlayersList[turn] == playerId,
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              CardAttribute(
+                attribute: card,
+                attributeName: 'attribute3',
+                caption: 'Filhotes',
+                compareFunction: _processRound,
+                yourTurn: turnPlayersList.isNotEmpty &&
+                    turnPlayersList[turn] == playerId,
+              ),
+              CardAttribute(
+                attribute: card,
+                attributeName: 'attribute4',
+                caption: 'Anos de vida',
+                compareFunction: _processRound,
+                yourTurn: turnPlayersList.isNotEmpty &&
+                    turnPlayersList[turn] == playerId,
+              ),
+            ],
+          ),
+          CardAttribute(
+            attribute: card,
+            attributeName: 'attribute5',
+            caption: 'Risco de extinção',
+            compareFunction: _processRound,
+            yourTurn:
+                turnPlayersList.isNotEmpty && turnPlayersList[turn] == playerId,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _playersArea() {
+    return Expanded(
+      flex: 2,
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: playersRef!.snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Text('Loading...');
+          }
+          final players = snapshot.data!.docs;
+          return ListView.builder(
+            itemCount: players.length,
+            itemBuilder: (context, index) {
+              final player = players[index].data();
+              return ListTile(
+                  title: _playerTitle(player, gameStatus),
+                  leading: hostId == players[index].id
+                      ? const CircleAvatar(
+                          child: Icon(Icons.person),
+                        )
+                      : null,
+                  trailing: Text(
+                    player['num_cards'].toString(),
+                    style: Theme.of(context).textTheme.headline5,
+                  ),
+                  subtitle: gameStatus == 'playing' &&
+                          turnPlayersList.isNotEmpty &&
+                          turnPlayersList[turn] == players[index].id
+                      ? const Text('Vez da rodada!')
+                      : null,
+                  tileColor: gameStatus == 'playing' &&
+                          turnPlayersList.isNotEmpty &&
+                          turnPlayersList[turn] == players[index].id
+                      ? Theme.of(context).backgroundColor
+                      : null,
+                  dense: true);
+            },
+          );
+        },
       ),
     );
   }

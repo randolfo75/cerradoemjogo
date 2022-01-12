@@ -94,6 +94,7 @@ class GameRoom extends StatelessWidget {
           _comeInGame(context: context);
         },
         child: const Icon(Icons.add),
+        tooltip: 'Criar um novo jogo',
       ),
     );
   }

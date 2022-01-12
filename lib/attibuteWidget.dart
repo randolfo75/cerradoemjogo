@@ -20,6 +20,7 @@ class CardAttribute extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: Colors.transparent,
       child: TextButton(
         onPressed: yourTurn
             ? () {
@@ -27,7 +28,10 @@ class CardAttribute extends StatelessWidget {
               }
             : null,
         child: Text("$caption: ${attribute[attributeName]}",
-            style: Theme.of(context).textTheme.headline6),
+            style: const TextStyle(
+                color: Colors.lightGreenAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 20)),
       ),
     );
   }
