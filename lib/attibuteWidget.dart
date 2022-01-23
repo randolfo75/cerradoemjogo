@@ -31,7 +31,7 @@ class CardAttribute extends StatelessWidget {
             style: const TextStyle(
                 color: Colors.lightGreenAccent,
                 fontWeight: FontWeight.bold,
-                fontSize: 20)),
+                fontSize: 15)),
       ),
     );
   }
