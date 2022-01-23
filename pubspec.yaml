@@ -57,6 +57,46 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/card_back.jpg
+    - assets/images/araracaninde.jpg
+    - assets/images/ariranha.jpg
+    - assets/images/arraia.jpg
+    - assets/images/botodoaraguaia.jpg
+    - assets/images/capivara.jpg
+    - assets/images/carcara.jpg
+    - assets/images/cascavel.jpg
+    - assets/images/corujaburaqueira.jpg
+    - assets/images/curicaca.jpg
+    - assets/images/ema.jpg
+    - assets/images/gamba.jpg
+    - assets/images/gatomaracaja.jpg
+    - assets/images/irara.jpg
+    - assets/images/irere.jpg
+    - assets/images/jacare.jpg
+    - assets/images/jararaca.jpg
+    - assets/images/jiboia.jpg
+    - assets/images/loboguara.jpg
+    - assets/images/macacoprego.jpg
+    - assets/images/maopelada.jpg
+    - assets/images/micoestrela.jpg
+    - assets/images/morceguinhodocerrado.jpg
+    - assets/images/oncaparda.jpg
+    - assets/images/oncapintada.jpg
+    - assets/images/ouricocacheiro.jpg
+    - assets/images/picapaudocampo.jpg
+    - assets/images/quati.jpg
+    - assets/images/queroquero.jpg
+    - assets/images/quiriquiri.jpg
+    - assets/images/raposadocampo.jpg
+    - assets/images/sapocururu.jpg
+    - assets/images/serhumano.jpg
+    - assets/images/seriema.jpg
+    - assets/images/tamanduabandeira.jpg
+    - assets/images/tamanduamirim.jpg
+    - assets/images/tartaruga.jpg
+    - assets/images/tatucanastra.jpg
+    - assets/images/tucano.jpg
+    - assets/images/uruburei.jpg
+    - assets/images/veadocampeiro.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

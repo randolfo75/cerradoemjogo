@@ -304,7 +304,8 @@ class _GamePageState extends State<GamePage> {
                       alignment: Alignment.topLeft,
                       decoration: BoxDecoration(
                           image: DecorationImage(
-                              image: NetworkImage(cards[0]['image_url']),
+                              image: AssetImage(
+                                  "assets/images/${cards[0]['image_name']}"),
                               opacity: 1.0,
                               fit: BoxFit.contain)),
                       child: Column(
@@ -374,7 +375,7 @@ class _GamePageState extends State<GamePage> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               CardAttribute(
                 attribute: card,
